@@ -1,4 +1,4 @@
-package com.cognixia.jump.advancedjava.JavaFinalProject;
+package com.cognixia.jump.advancedjava.finalproject;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -9,7 +9,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class EMSSession {
@@ -22,26 +24,44 @@ public class EMSSession {
 	//any methods for creating/deleting employees should be called on these variables
 	//(they will be the ones used to load and save the full session)
 	
-	static ArrayList<Employee> globalEmployeeList = new ArrayList<Employee>();
-	static ArrayList<Department> globalDepartmentList = new ArrayList<Department>();
+	ArrayList<Employee> globalEmployeeList = new ArrayList<Employee>();
+	ArrayList<Department> globalDepartmentList = new ArrayList<Department>();
 	
 	/****************************************************************************************************
 	 * RUNTIME METHODS FOR EMPLOYEE MANAGEMENT SYSTEM
 	 * (USE THESE IN MAIN METHOD)
-	 * @throws FileNotFoundException 
 	 ****************************************************************************************************/
 	
-	public static void loadSession(String empFilePath, String depFilePath) throws FileNotFoundException {
+	public void loadSession(String empFilePath, String depFilePath) throws FileNotFoundException {
 		
 		//given two paths to files for Employee and Department lists respectively, loads both lists from the current session
 		//(these lists are then accessible from the above variables)
+		
+		File empFile = new File(empFilePath);
+		File depFile = new File(depFilePath);
+		
+		if (!empFile.exists()) {
+			try {
+				empFile.createNewFile();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		if (!depFile.exists()) {
+			try {
+				depFile.createNewFile();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 		
 		readEmployeesFromFile(empFilePath);
 		readDepartmentsFromFile(depFilePath);
 		
 	}
 	
-	public static void saveSession(String empFilePath, String depFilePath) {
+	public void saveSession(String empFilePath, String depFilePath) {
 		
 		//given two paths to files for Employee and Department lists respectively, saves both lists from the current session
 		
@@ -50,42 +70,53 @@ public class EMSSession {
 		
 	}
 	
-	public static void addEmployee(Employee emp) {
+	public void addEmployee(Employee emp) throws EMSEmployeeException {
 		
 		//adds an employee to the global employee list for this session
 		//(first checking for any duplicate IDs)
-		
-		//TODO Possible custom exceptions for duplicate employees/returning errors
-		
+				
 		Stream<Employee> empStream = globalEmployeeList.stream();
 		Optional<Employee> opt = empStream.filter(x -> x.getId() == emp.getId()).findAny();
-		if (opt == null) {
+		if (opt.isEmpty() == true) {
 			globalEmployeeList.add(emp);
+		} else {
+			throw new EMSEmployeeException(emp);
 		}
 		
 	}
 	
-	public static void addDepartment(Department dep) {
+	public void addDepartment(Department dep) throws EMSDepartmentException {
 		
 		//adds a department to the global department list for this session
 		//(first checking for any duplicate names)
-		
-		//TODO Possible custom exceptions for duplicate departments/returning errors
-		
+				
 		Stream<Department> depStream = globalDepartmentList.stream();
-		Optional<Department> opt = depStream.filter(x -> x.getName() == dep.getName()).findAny();
-		if (opt == null) {
+		Optional<Department> opt = depStream.filter(x -> x.getName().equals(dep.getName())).findAny();
+		if (opt.isEmpty() == true) {
 			globalDepartmentList.add(dep);
+		} else {
+			throw new EMSDepartmentException(dep);
 		}
 		
 	}
 	
-	public static void deleteEmployee(Employee emp) {
+	public void deleteEmployee(Employee emp) {
 		globalEmployeeList.remove(emp);
 	}
 	
-	public static void deleteDepartment(Department dep) {
+	public void deleteDepartment(Department dep) {
 		globalDepartmentList.remove(dep);
+	}
+	
+	public List<Employee> getEmployeesInDepartment(String s) {
+		
+		//given a string containing a department name, returns all employees within that department
+		
+		Stream<Employee> empStream = globalEmployeeList.stream();
+		List<Employee> result = empStream.filter(x -> x.getDepartmentName().equals(s)).collect(Collectors.toList());
+		
+		return result;
+		
 	}
 	
 	
@@ -101,36 +132,7 @@ public class EMSSession {
 	 * WRITING METHODS
 	 ************************************************************/
 	
-	public static void writeEmployeeToFile(Employee emp, String filepath) {
-		
-		//given an Employee object and a path to a file, appends a formatted string to the end of the file containing Employee data
-		
-		StringBuffer outputString = new StringBuffer(generateEmployeeOutputString(emp));
-		
-		File file = new File(filepath);
-		
-		if (!file.exists()) {
-			try {
-				file.createNewFile();
-			} catch (IOException e1) {
-				e1.printStackTrace();
-			}
-		}
-		
-		try (FileWriter fr = new FileWriter(file, true);
-				BufferedWriter br = new BufferedWriter(fr);
-				PrintWriter pr = new PrintWriter(br);
-			) {
-			
-			pr.println(outputString);
-			
-		} catch (IOException e1) {
-			e1.printStackTrace();
-		}
-			
-	}
-	
-	public static void writeEmployeesToFile(ArrayList<Employee> empList, String filepath) {
+	public void writeEmployeesToFile(ArrayList<Employee> empList, String filepath) {
 		
 		//given an Employee object and a path to a file, overwrites entire file with formatted Employee data from list
 		
@@ -163,36 +165,7 @@ public class EMSSession {
 			
 	}
 	
-	public static void writeDepartmentToFile(Department dep, String filepath) {
-		
-		//given an Department object and a path to a file, appends a formatted string to the end of the file containing Department data
-		
-		StringBuffer outputString = new StringBuffer(generateDepartmentOutputString(dep));
-		
-		File file = new File(filepath);
-		
-		if (!file.exists()) {
-			try {
-				file.createNewFile();
-			} catch (IOException e1) {
-				e1.printStackTrace();
-			}
-		}
-		
-		try (FileWriter fr = new FileWriter(file, true);
-				BufferedWriter br = new BufferedWriter(fr);
-				PrintWriter pr = new PrintWriter(br);
-			) {
-			
-			pr.println(outputString);
-			
-		} catch (IOException e1) {
-			e1.printStackTrace();
-		}
-			
-	}
-	
-	public static void writeDepartmentsToFile(ArrayList<Department> depList, String filepath) {
+	public void writeDepartmentsToFile(ArrayList<Department> depList, String filepath) {
 		
 		//given an Employee object and a path to a file, overwrites entire file with formatted Employee data from list
 		
@@ -229,7 +202,7 @@ public class EMSSession {
 	 * READING METHODS
 	 ************************************************************/
 	
-	public static ArrayList<Employee> readEmployeesFromFile(String filepath) throws FileNotFoundException {
+	public ArrayList<Employee> readEmployeesFromFile(String filepath) throws FileNotFoundException {
 		
 		//given a path to a file, parses entire file into an ArrayList of Employee objects
 		
@@ -258,7 +231,7 @@ public class EMSSession {
 		
 	}
 	
-	public static ArrayList<Department> readDepartmentsFromFile(String filepath) throws FileNotFoundException {
+	public ArrayList<Department> readDepartmentsFromFile(String filepath) throws FileNotFoundException {
 		
 		//given a path to a file, parses entire file into an ArrayList of Department objects
 		
@@ -294,36 +267,26 @@ public class EMSSession {
 	
 	public static String generateEmployeeOutputString(Employee emp) {
 		
-		//Used internally by the methods below; no need to worry about using this in any external code.
+		//Used internally by the methods above; no need to worry about using this in any external code.
 		//(given an Employee object, returns a formatted string that is written to a central Employee list text file)
 		
-		StringBuffer outputString = new StringBuffer();
-		
-		//TODO replace the called getters/setters below with the ones from the final Employee class
-		outputString.append(emp.getId() + "|" + emp.getName() + "|" + emp.getDepartmentName() + "|" + emp.getStreet()
-			+ "|" + emp.getNumber() + "|" + emp.getSalary());
-		
-		return outputString.toString();
+		return new String(emp.getId() + "|" + emp.getName() + "|" + emp.getDepartmentName() + "|" + emp.getStreet()
+		+ "|" + emp.getNumber() + "|" + emp.getSalary());
 		
 	}
 	
 	public static String generateDepartmentOutputString(Department dep) {
 		
-		//Used internally by the methods below; no need to worry about using this in any external code.
+		//Used internally by the methods above; no need to worry about using this in any external code.
 		//(given an Department object, returns a formatted string that is written to a central Department list text file)
 		
-		StringBuffer outputString = new StringBuffer();
-		
-		//TODO replace the called getters/setters below with the ones from the final Department class
-		outputString.append(dep.getName() + "|" + dep.getPhoneNumber() + "|" + dep.getBudget());
-		
-		return outputString.toString();
+		return new String(dep.getName() + "|" + dep.getPhoneNumber() + "|" + dep.getBudget());
 		
 	}
 	
-	public static String[] buildFieldsFromInputString(String s) {
+	public static ArrayList<String> buildFieldsFromInputString(String s) {
 		
-		//Used internally by the methods below; no need to worry about using this in any external code.
+		//Used internally by the methods above; no need to worry about using this in any external code.
 		//(given a formatted string read from a text file, returns an array containing individual fields to be passed to an appropriate constructor wrapper below)
 		
 		ArrayList<String> fields = new ArrayList<String>();
@@ -345,32 +308,27 @@ public class EMSSession {
 			fields.add(currentField.toString());
 		}
 		
-		return (String[]) fields.toArray();
+		return fields;
 		
 	}
 	
 	public static Employee buildEmployeeFromInputString(String s) throws NumberFormatException {
 		
-		//Used internally by the methods below; no need to worry about using this in any external code.
+		//Used internally by the methods above; no need to worry about using this in any external code.
 		//(given a formatted string read from a text file, returns an Employee object containing this information)
 		
-		String[] fields = buildFieldsFromInputString(s);
-		
-		//TODO replace constructor with method from final Employee class
-		return new Employee(Integer.parseInt(fields[0]), fields[1], fields[2], fields[3], Integer.parseInt(fields[4]), Integer.parseInt(fields[5]));
+		ArrayList<String> fields = buildFieldsFromInputString(s);
+		return new Employee(Integer.parseInt(fields.get(0)), fields.get(1), fields.get(2), fields.get(3), Long.parseLong(fields.get(4)), Integer.parseInt(fields.get(5)));
 		
 	}
 	
 	public static Department buildDepartmentFromInputString(String s) throws NumberFormatException {
 		
-		//Used internally by the methods below; no need to worry about using this in any external code.
+		//Used internally by the methods above; no need to worry about using this in any external code.
 		//(given a formatted string read from a text file, returns a Department object containing this information)
-		//Employee list will remain null, as this will be constructed at runtime.
 		
-		String[] fields = buildFieldsFromInputString(s);
-		
-		//TODO replace constructor with method from final Department class
-		return new Department(fields[0], fields[1], Integer.parseInt(fields[2]), null);
+		ArrayList<String> fields = buildFieldsFromInputString(s);
+		return new Department(fields.get(0), fields.get(1), Integer.parseInt(fields.get(2)));
 		
 	}
 
